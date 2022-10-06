@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            width: 100vw;
+            background-image: linear-gradient(to right, rgba(7, 27, 82, 1) 0%,
+                    rgba(0, 128, 128, 1) 100%);
+
+        }
+
+        .form__container {
+            width: 450px;
+            background: white;
+            text-align: center;
+            margin: 150px auto;
+            padding: 10px;
+            box-shadow: 5px 10px 12px #333;
+        }
+
+        .input__group {
+            display: grid;
+            font-size: 12px;
+            margin: 10px;
+            grid-template-columns: 60px 1fr;
+            grid-template-rows: 40% 30px;
+            gap: 5px 20px;
+            align-items: center;
+            padding: 5px;
+
+        }
+
+        input[type=text] {
+            border: none;
+            border-bottom: 2px solid #ccc;
+            outline: none;
+            padding: 0 .4rem;
+            height: 60px;
+        }
+
+
+
+
+        input[type=text]::-webkit-input-placeholder {
+            content: "";
+            color: #ccc;
+            transition: all 0.5s;
+            font-size: 12px;
+        }
+
+        .tips {
+
+            display: block;
+            color: #f13246;
+            opacity: 0;
+            height: 30px;
+            font-size: 12px;
+            transform: translateY(33px);
+            transition: all 1s;
+            align-self: center;
+            grid-area: 2/2/3/3;
+            text-align: left;
+            margin-top: 15px;
+            line-height: 30px;
+        }
+
+        .showError {
+            opacity: 1;
+            transform: translateY(10px);
+        }
+
+        .input__group-btn {
+            width: 100%;
+            display: flex;
+            justify-content: space-evenly;
+            margin: 10px 0;
+        }
+
+        button {
+            border: none;
+            height: 40px;
+            width: 90px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #fff;
+            background-color: #000;
+            transition: all .5s;
+        }
+
+        button:hover {
+            color: #000;
+            background-color: #fff;
+            border: 1px solid;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form__container">
+        <h3>校园办公系统认证页面</h3>
+        <form action="#" class="form">
+            <div class="input__group">
+                <label for="">校园卡号:</label>
+                <input type="text" class="card" placeholder="请输入校园卡号" data-pass=false autocomplete="off" required
+                    name="card">
+                <span class="tips"></span>
+            </div>
+            <div class="input__group">
+                <label for="">口令:</label>
+                <input type="text" class="token" placeholder="请输入口令" data-pass=false autocomplete="off" required
+                    name="token">
+                <span class="tips"></span>
+            </div>
+            <div class="input__group">
+                <label for="">二次口令:</label>
+                <input type="text" class="confirm_token" placeholder="请确认口令" data-pass=false autocomplete="off" required
+                    name="confirm_token">
+                <span class="tips"></span>
+            </div>
+            <div class="input__group-btn">
+                <button class="submit" disabled="disabled">认证</button><button type="reset">重置</button>
+            </div>
+
+        </form>
+    </div>
+    <script>
+
+        const card = document.querySelector(".card")
+        const token = document.querySelector(".token")
+        const confirm_token = document.querySelector(".confirm_token")
+        const tips = document.querySelectorAll('.tips')
+        const reset = document.querySelector('button[type=reset]')
+        const submit = document.querySelector('.submit')
+
+        const formStrategies = {
+            notEmpty(value, errMsg) {
+                if (!value) return errMsg;
+            }
+            ,
+            length(value, length, errMsg) {
+                const [extent] = length.match(/\d+-\d+/g)
+                const [min, max] = extent.split("-")
+                console.log(value.length, max)
+                if (value.length < +min || value.length > +max) return errMsg;
+            },
+
+            notMatch(value1, value2, errMsg) {
+                if (value1 != value2) return errMsg;
+            },
+            standard_form(value, errMsg) {
+                if (!/^\w+$/g.test(value)) return errMsg
+            }
+        }
+        const formRules = [
+            [
+                { target: card },
+                [
+                    { rules: 'notEmpty', errMsg: '*用户名不能为空' },
+                    { rules: 'length:6-20', errMsg: '*用户名长度为6-20位' },
+                    { rules: 'standard_form', errMsg: '*用户名必须是字母数字下划线组成' }
+                ]
+            ],
+            [
+                { target: token },
+                [
+                    { rules: 'notEmpty', errMsg: '*密码不能为空' },
+                    { rules: 'length:8-25', errMsg: '*密码长度为8-25位' }
+                ]
+            ],
+            [
+                { target: confirm_token },
+                [
+                    { rules: 'notEmpty', errMsg: '*确认密码不能为空' },
+                    { rules: 'notMatch', errMsg: '*输入的两次密码不一致' }
+                ]
+            ]
+
+        ]
+        class Validator {
+            cache = []
+
+            add(target, rules) {
+                const dom = [...arguments].shift();
+                for (const item of rules) {
+                    let { rules, errMsg } = item;
+                    let args = [dom.value, errMsg]
+                    if (rules.includes('length')) {
+                        let [rule, strategy] = rules.split(':')
+                        args = [dom.value, strategy, errMsg]
+                        rules = rule
+                    }
+                    if (rules.includes('notMatch')) args = [dom.value, token.value, errMsg]
+                    this.cache.push(() => {
+                        return formStrategies[rules].apply(null, args)
+                    })
+                }
+            }
+
+            startValidate() {
+                for (let k = 0; k < this.cache.length; k++) {
+                    const res = this.cache[k]()
+                    if (res) return res;
+                }
+            }
+        }
+        formRules.forEach((target_rules) => {
+            const [{ target }, rules] = target_rules;
+            const tips = target.nextElementSibling
+            target.addEventListener('blur', function () {
+                const validate = new Validator()
+                validate.add(this, rules)
+                const res = validate.startValidate()
+                if (res) {
+                    target.style.borderBottom = "2px solid orangered"
+                    tips.classList.add('showError')
+                    tips.textContent = res;
+                    target.dataset['pass'] = false
+                }
+                if (!res) {
+                    target.style.borderBottom = "2px solid skyblue"
+                    tips.classList.remove('showError')
+                    target.dataset['pass'] = true
+
+                }
+                if (card.dataset['pass'] == 'true'
+                    && token.dataset['pass'] == 'true'
+                    && confirm_token.dataset['pass'] == 'true') {
+                    submit.disabled = false;
+                }
+            })
+        })
+
+
+        submit.addEventListener('click', (e) => {
+            e.preventDefault();
+            location.href = './success.html'
+        })
+        reset.addEventListener('click', () => {
+            [...tips].forEach(item => item.classList.remove('showError'))
+            const arr = [card, token, confirm_token]
+            arr.forEach(item => item.style.borderBottom = '2px solid #ccc')
+
+        })
+
+
+    </script>
+</body>
+
+</html>
